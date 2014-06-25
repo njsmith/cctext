@@ -1,3 +1,6 @@
+// Use a recent version of gradle for this -- I used 1.12 (and I know
+// that 1.5 gives obscure errors due to missing C++ support).
+
 apply plugin: 'java'
 
 apply plugin: 'application'
@@ -5,33 +8,65 @@ mainClassName = 'org.python.util.jython'
 
 repositories {
   mavenCentral()
-  maven {
-    url 'http://boilerpipe.googlecode.com/svn/repo/'
+  flatDir
+  {
+    dirs 'lib'
   }
 }
 
 dependencies {
+  // For interactive exploration
   compile 'org.python:jython-standalone:2.7-b2'
-  compile 'org.jwat:jwat-warc:1.0.0'
-  compile 'org.apache.tika:tika-parsers:1.5'
-  // compile 'net.java.dev.jets3t:jets3t:0.9.1'
 
-  compile 'nu.validator.htmlparser:htmlparser:1.4'
-
+  // Generally useful tools (not sure I actually still use all of these)
   compile 'org.apache.commons:commons-lang3:3.3.2'
   compile 'org.apache.commons:commons-io:1.3.2'
+  compile 'com.google.code.gson:gson:2.2.4'
+  compile 'com.google.guava:guava:17.0'
 
-  compile 'net.sourceforge.nekohtml:nekohtml:1.9.13'
-  compile 'xerces:xercesImpl:2.9.1'
-  compile 'de.l3s.boilerpipe:boilerpipe:1.2.0'
+  // Reading (W)ARC files
+  compile 'org.jwat:jwat-arc:1.0.0'
+  compile 'org.jwat:jwat-warc:1.0.0'
+
+  // Parsing HTML
+  compile 'net.sourceforge.jchardet:jchardet:1.0'
+  compile 'com.ibm.icu:icu4j:53.1'
+  compile 'nu.validator.htmlparser:htmlparser:1.4'
+
+  // Accessing S3
+  compile 'com.amazonaws:aws-java-sdk:1.7.13'
+
+  // CLD2 wrapper
+  compile 'com.nativelibs4java:bridj:0.6.2'
+  compile ':CLD2wrap'
 }
 
-// Hiding stuff in src/main/java is a pointless hassle for this tiny
-// one-off project.
-sourceSets {
-  main {
-    java {
-      srcDir 'java'
+// We build a little library
+
+// To generate the java wrapper I used:
+// java -jar ../jnaerator-0.11-shaded.jar -library CLD2wrap -mode Jar -o lib -f src/CLD2wrap/cpp/cld2wrap.h
+
+apply plugin: 'cpp'
+
+libraries
+{
+  cld2wrap
+  {
+    binaries.all
+    {
+      linker.args "-L", "$projectDir/cld2/internal", "-lcld2_full"
+      cppCompiler.args "-I", "$projectDir/cld2/public"
     }
   }
 }
+
+// configurations
+// {
+//   foo
+// }
+
+// task buildAllLibraries {
+//   dependsOn binaries.withType(SharedLibraryBinary).matching {
+//     it.buildable
+//   }
+// }
